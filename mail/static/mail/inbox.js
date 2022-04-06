@@ -8,8 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('#compose-form').onsubmit = function (e) {
         e.preventDefault();
         send_email();
-    }
-
+    };
 
     // By default, load the inbox
     load_mailbox('inbox');
@@ -65,11 +64,31 @@ function load_mailbox(mailbox) {
     document.querySelector('#compose-view').style.display = 'none';
 
     // Show the mailbox name
-    document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`
-    fetch('/emails/inbox')
+    const emailview = document.querySelector('#emails-view');
+    emailview.innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+
+    //get inbox email json
+    fetch(`/emails/${mailbox}`)
         .then(response => response.json())
-        .then(test => console.log(test))
-
-
-    // let node = '<ul>';
+        .then(data => {
+            console.log(data);
+            //Create list of email and Show it
+            let emaillist = '<ul class="list-group">'
+            for (let email in data) {
+                if (mailbox == "sent") {
+                    emaillist += `<li class="list-group-item">to: ${data[email].recipients} | <small>${data[email].timestamp}</small>
+                                <br>
+                                <small>${data[email].subject}</small>
+                                </li>`;
+                } else {
+                    emaillist += `<li class="list-group-item" style="${data[email].read ? "background-color: #f3f3f3;" : ""}">${data[email].sender} | <small>${data[email].timestamp}</small>
+                                <br>
+                                
+                                <small>${data[email].subject}</small>
+                                </li>`;
+                }
+            }
+            emaillist += '</ul>';
+            emailview.innerHTML += emaillist;
+        });
 }
