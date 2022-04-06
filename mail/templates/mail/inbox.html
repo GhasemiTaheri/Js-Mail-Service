@@ -11,11 +11,15 @@
     <a class="btn btn-sm btn-outline-primary" href="{% url 'logout' %}">Log Out</a>
     <hr>
 
+    <!-- show all email list in "inbox" "sent box" "archive box" -->
     <div id="emails-view">
-        <ul id="email-list" class="list-group">
-        </ul>
     </div>
 
+    <!-- show one email detail-->
+    <div id="email-detail">
+    </div>
+
+    <!-- for send email to another -->
     <div id="compose-view">
         <h3>New Email</h3>
         <p id="error-box"></p>

@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
         send_email();
     };
 
+
     // By default, load the inbox
     load_mailbox('inbox');
 });
@@ -60,11 +61,12 @@ function send_email() {
 function load_mailbox(mailbox) {
 
     // Show the mailbox and hide other views
-    document.querySelector('#emails-view').style.display = 'block';
+    const emailview = document.querySelector('#emails-view');
+    emailview.style.display = 'block';
     document.querySelector('#compose-view').style.display = 'none';
+    document.querySelector('#email-detail').style.display = 'none';
 
     // Show the mailbox name
-    const emailview = document.querySelector('#emails-view');
     emailview.innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 
     //get inbox email json
@@ -76,12 +78,12 @@ function load_mailbox(mailbox) {
             let emaillist = '<ul class="list-group">'
             for (let email in data) {
                 if (mailbox == "sent") {
-                    emaillist += `<li class="list-group-item">to: ${data[email].recipients} | <small>${data[email].timestamp}</small>
+                    emaillist += `<li onclick="email_detail(${data[email].id});" class="list-group-item">to: ${data[email].recipients} | <small>${data[email].timestamp}</small>
                                 <br>
                                 <small>${data[email].subject}</small>
                                 </li>`;
                 } else {
-                    emaillist += `<li class="list-group-item" style="${data[email].read ? "background-color: #f3f3f3;" : ""}">${data[email].sender} | <small>${data[email].timestamp}</small>
+                    emaillist += `<li onclick="email_detail(${data[email].id});" class="list-group-item" style="${data[email].read ? "background-color: #f3f3f3;" : ""}">${data[email].sender} | <small>${data[email].timestamp}</small>
                                 <br>
                                 
                                 <small>${data[email].subject}</small>
@@ -90,5 +92,28 @@ function load_mailbox(mailbox) {
             }
             emaillist += '</ul>';
             emailview.innerHTML += emaillist;
+        });
+}
+
+function email_detail(id) {
+    // Show the mailbox and hide other views
+    document.querySelector('#emails-view').style.display = 'none';
+    const emaildetail = document.querySelector('#email-detail');
+    emaildetail.style.display = 'block';
+
+    fetch(`/emails/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+            read: true,
+        })
+    });
+
+    fetch(`/emails/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            emaildetail.innerHTML = `<h4>${data.sender}</h4>`;
+            emaildetail.innerHTML += `<h5>${data.subject} <small>${data.timestamp}</small></h5>`;
+            emaildetail.innerHTML += `<p>${data.body}</p>`;
         });
 }

@@ -1,3 +1,9 @@
 textarea {
     min-height: 400px;
 }
+
+.list-group-item:hover {
+    cursor: pointer;
+    box-shadow: 0 0 10px rgb(33 33 33 / 20%);
+    z-index: 1;
+}
