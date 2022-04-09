@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         send_email();
     };
+    document.querySelector('#archive-button').addEventListener('click', archive_email);
+    document.querySelector('#reply-button').addEventListener('click', reply_email);
 
 
     // By default, load the inbox
@@ -64,7 +66,7 @@ function load_mailbox(mailbox) {
     const emailview = document.querySelector('#emails-view');
     emailview.style.display = 'block';
     document.querySelector('#compose-view').style.display = 'none';
-    document.querySelector('#email-detail').style.display = 'none';
+    document.querySelector('#email-single').style.display = 'none';
 
     // Show the mailbox name
     emailview.innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
@@ -73,33 +75,44 @@ function load_mailbox(mailbox) {
     fetch(`/emails/${mailbox}`)
         .then(response => response.json())
         .then(data => {
-            console.log(data);
             //Create list of email and Show it
-            let emaillist = '<ul class="list-group">'
+            let ul_element = document.createElement('ul');
+            ul_element.setAttribute('class', 'list-group');
+
             for (let email in data) {
-                if (mailbox == "sent") {
-                    emaillist += `<li onclick="email_detail(${data[email].id});" class="list-group-item">to: ${data[email].recipients} | <small>${data[email].timestamp}</small>
-                                <br>
-                                <small>${data[email].subject}</small>
-                                </li>`;
-                } else {
-                    emaillist += `<li onclick="email_detail(${data[email].id});" class="list-group-item" style="${data[email].read ? "background-color: #f3f3f3;" : ""}">${data[email].sender} | <small>${data[email].timestamp}</small>
-                                <br>
-                                
-                                <small>${data[email].subject}</small>
-                                </li>`;
+
+                let li_element = document.createElement('li');
+                li_element.setAttribute('class', 'list-group-item');
+                li_element.dataset.id = data[email].id;
+                li_element.innerHTML = `${data[email].sender} | ${data[email].timestamp} <br> ${data[email].body}`;
+
+                if (mailbox === "sent") {
+                    li_element.dataset.type = "sent";
+                } else if (mailbox === "inbox") {
+                    li_element.dataset.type = "inbox";
+                    if (data[email].read) {
+                        li_element.setAttribute("style", "background-color:#f3f3f3");
+                    }
+                } else if (mailbox === "archive") {
+                    li_element.dataset.type = "archive";
+                    li_element.setAttribute("style", "background-color:#f3f3f3");
                 }
+
+                li_element.addEventListener('click', email_detail);
+                ul_element.appendChild(li_element);
             }
-            emaillist += '</ul>';
-            emailview.innerHTML += emaillist;
+            emailview.append(ul_element);
         });
 }
 
-function email_detail(id) {
+function email_detail() {
     // Show the mailbox and hide other views
     document.querySelector('#emails-view').style.display = 'none';
+    document.querySelector('#email-single').style.display = 'block';
     const emaildetail = document.querySelector('#email-detail');
     emaildetail.style.display = 'block';
+
+    let id = this.dataset.id;
 
     fetch(`/emails/${id}`, {
         method: "PUT",
@@ -111,9 +124,57 @@ function email_detail(id) {
     fetch(`/emails/${id}`)
         .then(response => response.json())
         .then(data => {
-            console.log(data);
-            emaildetail.innerHTML = `<h4>${data.sender}</h4>`;
-            emaildetail.innerHTML += `<h5>${data.subject} <small>${data.timestamp}</small></h5>`;
+            const archive = document.querySelector("#archive-button");
+            const reply = document.querySelector("#reply-button");
+            if (this.dataset.type === "sent") {
+                archive.setAttribute("style", "display:none");
+                reply.setAttribute("style", "display:none");
+            } else {
+                archive.setAttribute("style", "display:inline");
+                archive.dataset.id = this.dataset.id;
+                archive.dataset.type = this.dataset.type;
+
+                reply.setAttribute("style", "display:inline");
+                reply.dataset.sender = data.sender;
+                reply.dataset.subject = data.subject;
+                reply.dataset.date = data.timestamp;
+
+                if (this.dataset.type === "inbox")
+                    archive.setAttribute("class", "bi bi-archive mx-2");
+                if (this.dataset.type === "archive")
+                    archive.setAttribute("class", "bi bi-archive-fill mx-2");
+
+            }
+            emaildetail.innerHTML = `<h4 style="display: inline; margin-right: 20px;">${data.sender}</h4>`;
+            emaildetail.innerHTML += `<h5>${data.subject} <small style="float: right;">${data.timestamp}</small></h5>`;
             emaildetail.innerHTML += `<p>${data.body}</p>`;
         });
+}
+
+function archive_email() {
+    let state = true;
+    if (this.dataset.type === "archive")
+        state = false;
+
+    const id = this.dataset.id;
+    fetch(`/emails/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+            archived: state,
+        })
+    }).then(() => load_mailbox("inbox"));
+
+}
+
+function reply_email() {
+    document.querySelector("#email-single").style.display = 'none';
+    document.querySelector("#compose-view").style.display = 'block';
+    const recipients = document.querySelector("#compose-recipients");
+    const subject = document.querySelector("#compose-subject");
+    const body = document.querySelector("#compose-body");
+
+    recipients.value = this.dataset.sender;
+    subject.value = `Re: ${this.dataset.subject}`;
+    body.value = `"On ${this.dataset.date} ${this.dataset.sender} wrote: " `;
+
 }
